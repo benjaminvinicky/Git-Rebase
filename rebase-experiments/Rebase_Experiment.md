@@ -84,7 +84,7 @@ Note master branch is unchanged here. When we rebase feature, only feature is ch
 
 ##### Where should rebase be used in a collaborative workflow?
 
-Above, discussed what would happen if you rebased a branch within your local repository. 
+Above, we discussed what would happen if you rebased a branch within your local repository. When you decide you want master to incorperate the feature branch, and you rebased feature onto master's new changes, merging with master will result in a fast-forward merge. 
 
 You can also rebase between master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
 
@@ -92,9 +92,11 @@ However, *__you should never reverse the direction "upstream!"__*
 
 If you are not careful about not rebasing shared branches, or upstream, **you can cause your team to lose work.** Think carefully: if your rebase command rebases a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused. 
 
-In general, **do not rebase shared branches.**
+In general, **do not rebase shared branches** but you should rebase *onto* shared branches.
 
 When we change the history that other collaborators have also copied into their local repos, we make it difficult for anyone’s new changes to be added properly.
+
+If you submit a **pull request**, do not rebase the branch. After a pull request, the branch is considered public. 
 
 ##### Conflicts
 
@@ -108,6 +110,7 @@ History conflicts happen when your someone else has pushed commits to origin. Yo
  Once your local git history matches origin, but with your changes applied on top, you can safely push to origin.
 
 **Merge conflicts** still can happen using rebase. Fix and continue as usual.
+
 
 
 ---
@@ -185,7 +188,7 @@ _Safest rebase cases:_
 
 **_Only rebase downstream_**
 
-Rebasing uses space as it creates copies of every commit on your branch before running the changes on top of the new base.
+Rebasing uses space as it creates copies of every commit on your branch before running the changes on top of the new base. 
 
 ---
 
@@ -214,7 +217,7 @@ Setting the config is recommended and powerful, but then, it's important to neve
 
 ##### Interactive rebase
 
-Interactive rebasing (-i) provides advanced commit history editing options: combine, split, rewrite, add, remove, and rearrange.
+Interactive rebasing (-i) provides advanced commit history editing options: combine, split, rewrite, add, remove, and rearrange. If needed, it is possible to use this for local cleanup, but you should never be rebasing shared commits.
 
 ##### When are force pushes appropriate?
 
