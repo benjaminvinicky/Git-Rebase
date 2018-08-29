@@ -1,14 +1,13 @@
-# Markdown Version
+[comment]: <> (Markdown version)
 
 # Rebase Experiments:
 
-# Notes on safely incorporating the benefits of git rebase for any team
+# Notes on safely incorporating benefits of git rebase for any team
 
 ##### Christina Tang
-
 ##### Benjamin Vinicky
 
-##### _20 August 2018_
+##### _29 August 2018_
 
 ---
 
@@ -16,7 +15,14 @@
 
 ---
 
-This document is meant for badabadabadabada...
+This document is for anyone interested in using git rebase to improving productivity or project history clarity.
+
+This report will answer:
+- why rebase is useful
+- what git rebase does
+- when rebase can be used
+- where rebase problems can occur
+- how to fix or mitigate rebase problems
 
 ---
 
@@ -24,7 +30,7 @@ This document is meant for badabadabadabada...
 
 ---
 
-`$ git rebase` solves the same problem as `$ git merge`, but in a different way.
+`$ git rebase` solves the same problem as `$ git merge` to integrate changes, but git history is affected very differently. 
 
 There are two main philosophies on keeping a git history:
 
@@ -32,84 +38,87 @@ There are two main philosophies on keeping a git history:
 
 - **_Pro-rebasers_** want a relevant record of project history. They believe history from individual contributors are irrelevant and can be distracting or counter-productive.
 
-Eventually, teams that never rebase will have project histories that are hard to understand. There are too many extra commits and unavoidable merge commits.
+Your team most likely wants a history in between, so understanding how to rebase safely is important.
 
-Many people avoid git rebase because improper rebasing can lose work and lose history. The `$ git bisect` command will not accurately find bugs when the linearity of git history is broken, but that can also be useless when there are too many merge commits.
+People tend to avoid rebase, because misuse can lose work or lose history. However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
 
-The alternative is to rebase, but . If we lose history, we may have a hard time tracking bugs. When rebase is used deliberately and appropriately, developers can still commit often, bisect for bugs, and avoid making lots of merge commits to the entire project history.
+The alternative is to incorperate rebase. Some teams never merge and only rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, bisect for bugs, all while avoiding lots of merge commits to the entire project history. 
 
-Rebasing is more than a tool for “_cleaning a commit history._” It is very powerful when properly incorporated into a team’s [git flow](https://www.atlassian.com/git/tutorials/comparing-workflows/gitflow-workflow).
+Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [git workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
 
-This report is a guide on how to decide where git rebase can be used, where problems can occur, and how to mitigate or fix potential rebase misuse problems.
+
+##### The disadvantages of rebasing
+
+History will not be completely accurate. Timestamps are distorted, which can cause problems retroactively looking for bugs. 
 
 ---
 
 ## _III. Background_
 
 ---
+This section explains git rebase, what it does to project history, and when it can be used. 
 
-This section explains git rebase and what it does to project history.
+##### Rebase vs Merge
 
-The diagram below shows what happens when you are in feature branch and rebase onto master (git rebase master).
+For now, let's consider the simple case of syncing changes between master and a feature branch. 
+
+Terminology: (1) the branch *being rebased*, and (2) the branch we are *rebasing onto*.
+
+The diagram below shows what happens when you are *rebasing feature onto master* (`$ git rebase master`).
+
+To convince yourself, notice how feature has a "new base" on top of "where master is."
 
 ![Rebase Diagram](./Pics/BeforeAfter.PNG)
 
 Source: freecodecamp.org
 
-Suppose you are working on the feature branch and your team has finalized additions to master. Rebasing will put your changes on top of master’s new commits, so you can get new additions or bug fixes in your work without creating superfluous merge commits. Notice master branch is unchanged after rebasing feature branch.
+Suppose you are working on the feature branch and your team has finalized additions to master. Rebasing will put your changes on top of master’s new commits, so you can get new additions or bug fixes in your work without creating extra merge commits. 
+
+Note master branch is unchanged here. When we rebase feature, only feature is changed.
 
 ##### What actually happens during a rebase?
 
 1. The differing commits from feature are stored in the stash
 2. Copies of these commits are played on top of master. The copies represent the same changes, but have a different parent commit, and therefore have a different SHA1 tag
-3. Master tag and branch are unchanged
-4. Feature branch’s HEAD tag now refers to a copy of the most recent commit, but with a different SHA1 tag
+3. Feature branch’s HEAD tag now refers to a copy of the most recent commit, but with a different SHA1 tag
 
-##### The advantages of rebasing
+##### Where should rebase be used in a collaborative workflow?
 
-It cleans history to be linear and easier-to-read. Interactive rebasing (-i) provides advanced commit history editing options: combine, split, rewrite, add, remove, and rearrange.
+Above, discussed what would happen if you rebased a branch within your local repository. 
 
-Amend commits much deeper than with the -–amend option.
+You can also rebase between master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
 
-##### The disadvantages of rebasing
+However, *__you should never reverse the direction "upstream!"__*
 
-History will not be completely accurate. Timestamps are distorted, which can cause problems retroactively looking for bugs. Rebasing shared branches, or upstream, can easily cause a catastrophic loss of work from collaborators.
+If you are not careful about not rebasing shared branches, or upstream, **you can cause your team to lose work.** Think carefully: if your rebase command rebases a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused. 
 
----
-
-## _IV. Research & Hypothesis_
-
----
-
-To discover the ways git rebase can ruin a repository, we first imagined all the ways git rebase could be used.
-
-In this nutshell example, there are three copies of the repository. The origin repo exists remotely on a host like GitHub. It has two branches: master and feature1. Alice and Bob have both cloned this repo and have done some work. Additionally, Alice has her own local branch.
-
-##### Our observations include:
-
-- You cannot rebase branches as the origin
-
-- You cannot rebase a branch from your repo to a copy of that branch on someone else’s repo
-
-- Alice and Bob’s master branches can rebase with origin/master. This is recommended, as they will be able to grab commits from origin without producing merge commits. Bob’s feature1 branch can also rebase with origin’s feature1.
-
-- Alice’s localbranch can rebase with anything upstream, but it is not recommended to upstream past the branch it branched off from. If not used carefully, it may cause problems trying to incorporate the local commits back onto a shared branch.
-- In general, do not rebase shared branches.
-- You can rebase a branch with itself to edit its history interactively. Proceed cautiously. Pushing history changes can quickly cause problems for collaborators.
-
-**In general, people state a certain rule for beginners:**
-
-_"Never rebase upstream"_
+In general, **do not rebase shared branches.**
 
 When we change the history that other collaborators have also copied into their local repos, we make it difficult for anyone’s new changes to be added properly.
 
+##### Conflicts
+
+History conflicts happen when your someone else has pushed commits to origin. You need to get the new commits AND decide what to do what to do with them. Without rebase, you had `$ git pull` or `$ git fetch` + `$ git merge`. Both create implicit merge commits. Rebase provides greater control and flexibility when you want to sync a branch to origin. Here are the options:
+
+- git pull
+- git pull --rebase
+- git fetch; git merge
+- git fetch; git rebase
+
+ Once your local git history matches origin, but with your changes applied on top, you can safely push to origin.
+
+**Merge conflicts** still can happen using rebase. Fix and continue as usual.
+
+
 ---
 
-## _V. Experiments_
+## _IV. Experiments_
 
 ---
 
 ### Experiment (1/2): Loss of history accuracy
+
+Consider this common workplace scenario.
 
 John rebases Feature onto Master. Jane makes some local commits to feature.
 ![Step 1](./Pics/1-1-1.PNG)
@@ -150,15 +159,10 @@ ie: `$ git pull --rebase` or `$ git fetch & git rebase`
 
 ![Step 5](./Pics/2-5.PNG)
 
----
-
-##### When are force pushes appropriate?
-
-Force pushes should only be used when the team is trained to constantly use `$ git pull –-rebase`. If possible, force pushes should be avoided. Where a force push is required, the team should be notified to use `$ git pull -–rebase` if not regularly doing so. It is easy to lose work and history when users use `$ git push –-force` with abandon.
 
 ---
 
-## VI. General Lessons (Beginner)
+## V. General Lessons (Beginner)
 
 ---
 
@@ -185,11 +189,11 @@ Rebasing uses space as it creates copies of every commit on your branch before r
 
 ---
 
-## VII. Further Reading (Advanced)
+## VI. Advanced Notes
 
 ---
 
-##### Using Git Pull Rebase
+##### Git Pull Rebase
 
 Small or coordinated teams can safely rebase shared branches. This breaks the golden rule people have set for beginners, but has benefits.
 
@@ -206,6 +210,16 @@ Quick Tip:
 You can always do a `$ git pull --rebase` with this configuration:
 `$ git config --global pull.rebase true`
 
+Setting the config is recommended and powerful, but then, it's important to never pull or rebase master.
+
+##### Interactive rebase
+
+Interactive rebasing (-i) provides advanced commit history editing options: combine, split, rewrite, add, remove, and rearrange.
+
+##### When are force pushes appropriate?
+
+Force pushes should only be used when the team is trained to constantly use `$ git pull –-rebase`. If possible, force pushes should be avoided. Where a force push is required, the team should be notified to use `$ git pull -–rebase` if not regularly doing so. It is easy to lose work and history when users use `$ git push –-force` with abandon.
+
 ##### Can you truly lose work?
 
 The .git/logs/refs folder has the SHA1 for every commit, including the commit made before a disaster had occurred. Git does not readily delete commits from your database, so losing work just means the commit with lost work is no longer being referenced by a tag (branch) or another commit. If you can find the SHA1, you can make a temporary branch to your work and recover it.
@@ -216,7 +230,7 @@ When force push changes history upstream, there is evidence that every repo prob
 
 ---
 
-## VIII. References
+## VII. References
 
 ---
 
@@ -227,21 +241,3 @@ DeVore, Greg. “Recovering From a Disasterous Git-Rebase Mistake.” _The Scree
 Musseau, Julius. “Too Much Fun with ‘Git Pull --Rebase.’” _Doing Git Wrong_, [mergebase.com/doing-git-wrong/2018/03/07/fun-with-git-pull-rebase/](https://mergebase.com/doing-git-wrong/2018/03/07/fun-with-git-pull-rebase/).
 
 “Git Rebase and the Golden Rule Explained. – FreeCodeCamp.” _FreeCodeCamp_, 28 Feb. 2016, [medium.freecodecamp.org/git-rebase-and-the-golden-rule-explained-70715eccc372](https://medium.freecodecamp.org/git-rebase-and-the-golden-rule-explained-70715eccc372).
-
----
-
-# IX. Appendix
-
----
-
-**Table 1**. _Core rebase combinations and their safeties_
--Table filled for the case to “_rebase row onto column_”
-
-![Core Rebase Combinations](./Pics/appendix.PNG)
-
-Legend:
-[o] generally safe  
-[?] questionable
-[!!] danger
-[-] impossible
-[*] interactive rebasing
