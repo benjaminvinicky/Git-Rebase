@@ -30,7 +30,13 @@ This report will answer:
 
 ---
 
-`$ git rebase` solves the same problem as `$ git merge` to integrate changes, but git history is affected very differently. 
+####What is Rebase?
+Git Rebase is a tool used to integrate changes while sustaining manageable, clean histories. Rebase rewrites git history by taking commits, stashing them, making new identical commits, and playing them on the head of the specified branch. This produces a much cleaner history, but comes with inherent risks if inappropriately used. 
+
+Although `$ git merge` is used in a similar fashion as `$ git rebase` it's important to note that they are very different. Rebase can be a very useful tool to maintain a clean history, but there are inherent risks that users need to be familiar with.
+####History
+ 
+ Opinions on using rebase tend to be varied and extreme due to the inherent riks 
 
 There are two main philosophies on keeping a git history:
 
@@ -51,7 +57,7 @@ Rebasing is more than a tool for “_cleaning a commit history._” It is powerf
 
 ---
 
-## _III. Background_
+## _III. How It Works_
 
 ---
 In this section we will take a look at git rebase, what it does to project history, and when it can be used. 
@@ -115,14 +121,16 @@ If you submit a **pull request**, do not rebase the branch. After a pull request
 
 In general, **do not rebase shared branches** but you should rebase *onto* shared branches.
 
+##### Git Pull --Rebase
+
+A git pull works by fetching and then merging. Similarly a `$ git pull --rebase` first fetches the branch, and then does a rebase. While `$ git pull --rebase` seems the same as git fetch and git rebase,
+it is important to know that they are not the same. The pull rebase option looks in the reflogs of the remote tracking branch and can tell which commits are local, and which are from an earlier fetch. The result is a linear, readable history with all work intact and in order. _Magic_.
 
 ##### Conflicts
 
-History conflicts happen when your someone else has pushed commits to origin. You need to get the new commits AND decide what to do what to do with them. Without rebase, you had `$ git pull` or `$ git fetch` + `$ git merge`. Both create implicit merge commits. Rebase provides greater control and flexibility when you want to sync a branch to origin. Here are the options:
+History conflicts happen when someone else has pushed commits to origin. You need to get the new commits AND decide what to do what to do with them. Without rebase, you had `$ git pull` or `$ git fetch` + `$ git merge`. Both create implicit merge commits. Rebase provides greater control and flexibility when you want to sync a branch to origin. Here are your rebase options:
 
-- git pull
 - git pull --rebase
-- git fetch; git merge
 - git fetch; git rebase
 
  Once your local git history matches origin, but with your changes applied on top, you can safely push to origin.
@@ -274,8 +282,6 @@ _Safest rebase cases:_
 - your feature _onto_ origin/feature
 - your local branch _onto_ its parent branch
 
-
-
 ---
 
 ## VI. Advanced Notes
@@ -315,9 +321,27 @@ When force push changes history upstream, there is evidence that every repo prob
 
 The .git/logs/refs folder has the SHA1 for every commit, including the commit made before a disaster had occurred. Git does not readily delete commits from your database, so losing work just means the commit with lost work is no longer being referenced by a tag (branch) or another commit. If you can find the SHA1, you can make a temporary branch to your work and recover it.
 
----
+___
 
-## VIII. Git Commands Reference
+## _VIII. Summary/Takeaways_
+
+___
+
+- Git works by taking commits, stashing them, assigning new sha1s, and playing them on the head of the specified branch.
+- Never rebase upstream (Unless you're 100% confident your entire team will never make a mistake...)
+- Never rebase shared branches
+- Never rebase pull requests
+- Use `$ git pull --rebase` whenever applicable
+- ALWAYS `$ git pull --rebase` before rebasing
+- Remember to use `$ git push --force-with-lease` in place of `$ git push --force`
+- You can use `$ git config --global pull.rebase true` to rebase pull by default
+- Although work can be recovered, your relationship with your co-workers may be permantly damaged. Use rebase with caution.
+
+
+
+___
+
+## _IX. Git Commands Reference_
 
 ___
 
@@ -350,7 +374,7 @@ ___
 
 ___
 
-## VIX. References
+## X. References
 
 ___
 
