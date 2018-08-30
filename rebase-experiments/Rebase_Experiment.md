@@ -38,11 +38,11 @@ There are two main philosophies on keeping a git history:
 
 - **_Pro-rebasers_** want a relevant record of project history. They believe history from individual contributors are irrelevant and can be distracting or counter-productive.
 
-Your team most likely wants a history in between, so understanding how to rebase safely is important. <--- **Should we make assumptions?**
+Many teams prefer a history in between, so understanding how to rebase safely is important. 
 
 People tend to avoid rebase, because misuse can lose work or lose history. However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
 
-The alternative is to incorperate rebase. Some teams only ever use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, bisect for bugs, all while avoiding lots of merge commits to the entire project history. <-- **Consider changing bisect. Many git users don't know that that is. Better yet, lets include a link to other documentation for it**
+The alternative is to incorperate rebase. Some teams only ever use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, [bisect](https://linuxhint.com/git-bisect-tutorial/) for bugs, all while avoiding lots of merge commits to the entire project history.
 
 Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [git workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
 
@@ -58,7 +58,7 @@ People who don't understand and misuse rebase can cause both a loss of work and 
 ## _III. Background_
 
 ---
-This section explains git rebase, what it does to project history, and when it can be used. <--- **Superfluous?**
+In this section we will take a look at git rebase, what it does to project history, and when it can be used. 
 
 ##### Rebase vs Merge
 
@@ -99,11 +99,13 @@ $ git rebase feature  <-- onto
 ```
 
 
-You can also rebase between master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
+You can also rebase master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
 
-\*\*\**__However, you should never reverse the direction "upstream!"__*\*\*\*
+\*\**__However, you should never reverse the direction "upstream!"__*\*\*
 
-If you aren't careful about not rebasing shared branches, or upstream, **you can cause your team to lose work.** Think carefully: if your rebase command rebases a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.  <-- **Consider simplifying somehow. This gets confusing. Even for me. Its just wording and then we really need to hit home the meaning of onto and such.** 
+If you aren't careful about not rebasing shared branches or upstream, **you can cause your team to lose work.** Think carefully: if you rebase a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.  
+
+_Rebasing upstream is dangerous in most situations and should only be attempted by a small team of git "experts"._
 
 In general, **do not rebase shared branches** but you should rebase *onto* shared branches.
 
@@ -124,22 +126,17 @@ History conflicts happen when your someone else has pushed commits to origin. Yo
 
 **Merge conflicts** still can happen using rebase. Fix and continue as usual.
 
-
-
----
+___
 
 ## _IV. Experiments_
 
----
+___
 
 ### Experiment (1/2): Loss of history accuracy
 
 Consider this common workplace scenario...
 
 John and Jane are working from a new repository. There have been 2 commits pushed to origin/Master, and then John makes a Feature branch. After that, John adds commit c to origin/Master. John adds Jane as a collaborator and she clones the repository.
-
-
-
 
 ![Setup](./Pics/1-1-1.PNG)
 
@@ -256,24 +253,24 @@ ___
 
 ___
 
-**_Do not rebase between shared branches_**
+\*\***_Do not rebase between shared branches_**\*\*
 
 Editing the history of any shared branch will almost always cause problems for contributors.
 When someone else pulls for the new history, git does a discrete merge for the remote and local histories. When they push, repeated merges end up in the remote history. From then on, any other contributor that pulls and pushes will be creating more discrete merge commits in the history.
 
 _When history has been altered on a shared branch,_ `$ git pull --rebase` _can be used in place of git pull to resolve conflicts of history and avoid extra merge commits_.
 
-Attempts at pushing a new history on a shared branch will be warned by git, and require a forced push to continue. Although not best practice, using option `$ git push --force-with-lease` will check to see if other's work will be overwritten; if so, cancel the push and `$ git pull --rebase` before pushing again.
+Attempts at pushing a new history on a shared branch will be warned by git, and require a force push to continue. Although not best practice, using option `$ git push --force-with-lease` will check to see if other's work will be overwritten; if so, cancel the push and `$ git pull --rebase` before pushing again.
 
-**_Only rebase local branches or “downstream” cases_**
+\*\***_Only rebase local branches or “downstream” cases_**\*\*
 
 _Safest rebase cases:_
 
-- your local master with origin/master
-- your feature branch with the origin/feature branch
-- anything onto your local branch.
+- your local master _onto_ origin/master
+- your feature branch _onto_ the origin/feature branch
+- anything _onto_ your local branch.
 
-**_Only rebase downstream_**
+\*\***_Only rebase downstream_**\*\*
 
 Rebasing uses space as it creates copies of every commit on your branch before running the changes on top of the new base. 
 
@@ -287,7 +284,7 @@ Rebasing uses space as it creates copies of every commit on your branch before r
 
 Small or coordinated teams can safely rebase shared branches. This breaks the golden rule people have set for beginners, but has benefits.
 
-If someone has forced pushed upstream changes, make sure everyone in the team is using either
+If someone has force pushed upstream changes, make sure everyone in the team is using either
 
 ```
 $ git pull --rebase
@@ -297,14 +294,14 @@ $ git fetch & git rebase
 And the team will make sure they are always working with the most recent history, even if the branch still looks like it is the same
 
 Quick Tip:
-You can always do a `$ git pull --rebase` with this configuration:
+You can always do a --rebase pull everytime you `$ git pull` with this configuration:
 `$ git config --global pull.rebase true`
 
-Setting the config is recommended and powerful, but then, it's important to never pull or rebase master.
+Setting the config is recommended and powerful, but then, it's important to never pull or rebase master. <---**Wait... what?? Why?!**
 
 ##### Interactive rebase
 
-Interactive rebasing (-i) provides advanced commit history editing options: combine, split, rewrite, add, remove, and rearrange. If needed, it is possible to use this for local cleanup, but you should never be rebasing shared commits.
+Interactive rebasing (-i) provides advanced [commit history editing options](https://robots.thoughtbot.com/git-interactive-rebase-squash-amend-rewriting-history#interactive-rebase): combine, split, rewrite, add, remove, and rearrange. If needed, it is possible to use this for local cleanup, but you should never be rebasing shared commits.
 
 ##### When are force pushes appropriate?
 
@@ -320,9 +317,42 @@ When force push changes history upstream, there is evidence that every repo prob
 
 ---
 
-## VII. References
+## VIII. Git Commands Reference
 
----
+___
+
+**Rebase:**
+-`$ git rebase <"onto" branch>`
+
+-[Interactive option](https://robots.thoughtbot.com/git-interactive-rebase-squash-amend-rewriting-history): (For Advanced Users)
+`$ git rebase --interactive`   or `-i` 
+
+-arguments in interactive mode:
+`p, pick <sha1>` use specified commit
+`r, reword <sha1>` use commit, and edit commit message
+`e, edit <sha1>` = use commit, but stop for amending`
+`s, squash <sha1>` = use commit, but meld into previous commit`
+`f, fixup <sha1>` = like "squash", but discard this commit's log message`
+`x, exec` = run command (the rest of the line) using shell`
+
+**Pulling With Rebase:**
+`$ git pull --rebase` or `-r`
+`$ git fetch & git rebase`
+
+-Setting up config for automatic rebase pulling:
+`$ git config --global pull.rebase true`
+
+**Pushing With Rebase:**
+`$ git push --force`
+
+-Check to see if work will be overwritten first:
+`$ git push --force-with-lease`
+
+___
+
+## VIX. References
+
+___
 
 Redfin Engineering, “Git Rebasing Public Branches Works Much Better Than You'd Think.” _Code Red_, 4 Oct. 2017, [redfin.engineering/git-rebasing-public-branches-works-much-better-than-youd-think-ecc9a115aea9](https://www.redfin.engineering/git-rebasing-public-branches-works-much-better-than-youd-think-ecc9a115aea9).
 
