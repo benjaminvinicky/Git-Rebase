@@ -38,31 +38,39 @@ There are two main philosophies on keeping a git history:
 
 - **_Pro-rebasers_** want a relevant record of project history. They believe history from individual contributors are irrelevant and can be distracting or counter-productive.
 
-Your team most likely wants a history in between, so understanding how to rebase safely is important.
+Your team most likely wants a history in between, so understanding how to rebase safely is important. <--- **Should we make assumptions?**
 
 People tend to avoid rebase, because misuse can lose work or lose history. However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
 
-The alternative is to incorperate rebase. Some teams never merge and only rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, bisect for bugs, all while avoiding lots of merge commits to the entire project history. 
+The alternative is to incorperate rebase. Some teams only ever use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, bisect for bugs, all while avoiding lots of merge commits to the entire project history. <-- **Consider changing bisect. Many git users don't know that that is. Better yet, lets include a link to other documentation for it**
 
 Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [git workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
 
 
 ##### The disadvantages of rebasing
 
-History will not be completely accurate. Timestamps are distorted, which can cause problems retroactively looking for bugs. 
+History will not be completely accurate. Timestamps are distorted, which can cause problems with retroactively looking for bugs. 
+
+People who don't understand and misuse rebase can cause both a loss of work and confusing git histories with duplicate commits.
 
 ---
 
 ## _III. Background_
 
 ---
-This section explains git rebase, what it does to project history, and when it can be used. 
+This section explains git rebase, what it does to project history, and when it can be used. <--- **Superfluous?**
 
 ##### Rebase vs Merge
 
-For now, let's consider the simple case of syncing changes between master and a feature branch. 
+For now, consider the simple case of syncing changes between master and a feature branch. 
 
 Terminology: (1) the branch *being rebased*, and (2) the branch we are *rebasing onto*.
+
+```
+(In your console)
+~/Git/GitExample (feature) <--This is the branch being rebased (1)
+$ git rebase master <-- We are rebasing onto Master (2)
+```
 
 The diagram below shows what happens when you are *rebasing feature onto master* (`$ git rebase master`).
 
@@ -85,12 +93,17 @@ Note master branch is unchanged here. When we rebase feature, only feature is ch
 ##### Where should rebase be used in a collaborative workflow?
 
 Above, we discussed what would happen if you rebased a branch within your local repository. When you decide you want master to incorperate the feature branch, and you rebased feature onto master's new changes, merging with master will result in a fast-forward merge. 
+```
+~/Git/GitExample (master) <-- rebasing
+$ git rebase feature  <-- onto
+```
+
 
 You can also rebase between master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
 
-However, *__you should never reverse the direction "upstream!"__*
+\*\*\**__However, you should never reverse the direction "upstream!"__*\*\*\*
 
-If you are not careful about not rebasing shared branches, or upstream, **you can cause your team to lose work.** Think carefully: if your rebase command rebases a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused. 
+If you aren't careful about not rebasing shared branches, or upstream, **you can cause your team to lose work.** Think carefully: if your rebase command rebases a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.  <-- **Consider simplifying somehow. This gets confusing. Even for me. Its just wording and then we really need to hit home the meaning of onto and such.** 
 
 In general, **do not rebase shared branches** but you should rebase *onto* shared branches.
 
@@ -121,53 +134,127 @@ History conflicts happen when your someone else has pushed commits to origin. Yo
 
 ### Experiment (1/2): Loss of history accuracy
 
-Consider this common workplace scenario.
+Consider this common workplace scenario...
 
-John rebases Feature onto Master. Jane makes some local commits to feature.
-![Step 1](./Pics/1-1-1.PNG)
-In _Step 1_, John rebases and then force pushes to remote. If anyone else had pushed any changes to feature, they would have been overwritten by the force push.
+John and Jane are working from a new repository. There have been 2 commits pushed to origin/Master, and then John makes a Feature branch. After that, John adds commit c to origin/Master. John adds Jane as a collaborator and she clones the repository.
 
-The rebase also creates a new commit D, which has the same changes as D, but a different SHA1, because it references a different parent commit.
 
-![Step 2](./Pics/1-1-2.PNG)
 
-Jane tries to push her local commits, but gets an error. She needs to pull first.
 
-![Step 3](./Pics/1-1-3.PNG)
+![Setup](./Pics/1-1-1.PNG)
 
-Her feature branch has commits A-B-D-E, while John’s rebase of feature to be A-B-C-D\* is on origin. Jane’s pull creates an implicit merge commit M for these two versions of feature, without quite understanding what’s going on. Then she pushes the two histories of feature along with their resolution all onto the origin.
+___
 
-![Step 4](./Pics/1-1-4.PNG)
+**Step 1:**
+```
+JohnsAccount ~/Git/GitExample (feature)
+$ git rebase master
+```
 
-We have a confusing history with duplicate commits and unnecessary marges that may make it hard to track down bugs in the future.
+![Step 1](./Pics/1-1-2.PNG)
+**Result:** Johns commit 'D' has been moved to the stack and duplicated to D* which has a new sha1. This new commit has been played on top of the head of Master.
+
+___
+
+**Step 2:**
+Jane has just commited her work in feature and now wants to push it to origin. First she has to pull...
+```
+JanesAccount ~/Git/GitExample (feature)
+$ git push origin/feature
+... ![rejected]...
+error: failed to push some refs to...
+hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. 
+hint: Integrate the remote changes (e.g. 'git pull...')...
+
+JanesAccount ~/Git/GitExample (feature)
+$ git pull
+```
+
+![Step 2](./Pics/1-1-3.PNG)
+
+**Result:** Jane doesn't know that John has rebased feature, and that her pull created an implicit merge. Jane's feature branch has commits A-B-D-E, while John’s rebase of feature resulted in A-B-C-D\*. This produced an error when trying to push. When Jane pulls, git tries to correct this error resulting duplicate commits and abundant headaches.
+
+___
+**Step 3:** Git resolves the pull the only way it can. Jane's push shares it with her collaborators. Everyone cries.
+![Step 3](./Pics/1-1-4.PNG)
+
+**Final Result:** We have a confusing history with duplicate commits and unnecessary merges that may make it hard to track down bugs in the future.  
 
 ---
 
 ### Experiment (2/2):
+**Enter the magic of `git pull --rebase`**
 
-Using `$ git pull --rebase` to mitigate problems from upstream history changes
+Using the same setup as Experiment 1, we use `$ git pull --rebase` to mitigate problems from upstream history changes
 
-![Setup](./Pics/2-1.PNG)
+**Step 1:** This time Jane starts off by pushing her work, commit 'E' to origin first.
+
+```
+JanesAccount ~/Git/GitExample (feature)
+$ git push origin/feature
+```
 
 ![Step 1](./Pics/2-2.PNG)
 
+**Result:** A successful push to origin!
+___
+
+**Step 2:** John wants to rebase his local feature on master, but since John is on a shared branch he pulls first.
+
+```
+JohnsAccount ~/Git/GitExample (feature)
+$ git pull --rebase
+...
+[success]
+
+JohnsAccount ~/Git/GitExample (feature)
+$ git rebase master
+```
 ![Step 2](./Pics/2-3.PNG)
+
+**Result:** John has pulled Jane's work successfully and rebased to master. The history is clean and concise and no work is lost.
 
 **_Potential loss of work!!!_** If John performed a rebase and force pushes without fetching and integrating Jane’s changes, he would have lost all of Jane’s work.
 ie: `$ git pull --rebase` or `$ git fetch & git rebase`
 
+___
+
+**Step 3:** Jane makes another commit on her local machine.
+```
+JanesAccount ~/Git/GitExample (feature)
+$ git push origin/feature
+```
 ![Step 3](./Pics/2-4.PNG)
+**Result:** Another successful commit!
+
+___
+
+**Step4:** Jane wants to push her changes to origin.
+```
+JanesAccount ~/Git/GitExample (feature)
+$ git push origin/feature
+... ![rejected]...
+error: failed to push some refs to...
+hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. 
+hint: Integrate the remote changes (e.g. 'git pull...')...
+
+JanesAccount ~/Git/GitExample (feature)
+$ git pull --rebase
+...[success]
+
+JanesAccount ~/Git/GitExample (feature)
+$ git push origin/feature
+...[success]
+```
 
 ![Step 4](./Pics/2-6.PNG)
 
-![Step 5](./Pics/2-5.PNG)
-
-
----
+**Result:** A beautiful history with no work lost and happy collaborators!
+___
 
 ## V. General Lessons (Beginner)
 
----
+___
 
 **_Do not rebase between shared branches_**
 
