@@ -109,7 +109,7 @@ You can also rebase master onto origin/master or feature onto origin/feature. Th
 
 \*\**__However, you should never reverse the direction: "upstream!"__*\*\*
 
-Do not rebase origin/master onto master, or origin/feature onto feature.
+Do not rebase master onto feature (if feature is branched from master), origin/master onto master, or origin/feature onto feature.
 
 If you aren't careful about not rebasing shared branches or upstream, **you can cause your team to lose work.** Think carefully: if you rebase a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.  
 
@@ -147,46 +147,68 @@ ___
 
 Consider this common workplace scenario...
 
-John and Jane are working from a new repository. There have been 2 commits pushed to origin/Master, and then John makes a Feature branch. After that, John adds commit c to origin/Master. John adds Jane as a collaborator and she clones the repository.
+John and Jane are working from a repository below. They have just cloned this from origin, and are now collaborating on the feature branch.
 
-![Setup](./Pics/1-1-1.PNG)
+![Setup](./Pics/setup.PNG)
 
 ___
 
 **Step 1:**
+
+John decides to rebase the feature branch to get master's latest commit. 
+This is going to cause problems because feature is a shared branch. 
+Git complains when John tries to push, but John decides to force push to origin anyways. 
 ```
-JohnsAccount ~/Git/GitExample (feature)
+Johns ~/Git/GitExample (feature)
 $ git rebase master
+$ git push --force
 ```
 
-![Step 1](./Pics/1-1-2.PNG)
-**Result:** Johns commit 'D' has been moved to the stack and duplicated to D* which has a new SHA1. This new commit has been played on top of the head of Master.
+![Step 1](./Pics/exp1-1.PNG)
+**Result:** Johns commit 'D' has been moved to the stack and duplicated to D* which has a new SHA1. This new commit has been played on top of the head of Master. After John force pushes, origin now has the same history as John.
 
 ___
 
 **Step 2:**
-Jane has just commited her work in feature and now wants to push it to origin. First she has to pull...
+Jane has just commited her work in feature and now wants to push it to origin. 
+
+![Step 2](./Pics/exp1-2.PNG)
 ```
-JanesAccount ~/Git/GitExample (feature)
+Jane ~/Git/GitExample (feature)
 $ git push origin/feature
 ... ![rejected]...
 error: failed to push some refs to...
 hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. 
 hint: Integrate the remote changes (e.g. 'git pull...')...
+```
+Jane doesn't know that John has rebased feature. She knows her history is "behind," so she pulls. 
 
-JanesAccount ~/Git/GitExample (feature)
+```
+Jane ~/Git/GitExample (feature)
 $ git pull
 ```
 
-![Step 2](./Pics/1-1-3.PNG)
+**Result:**  This produced an error when trying to push. When Jane pulls, git tries to correct this error resulting in an implicit merge with duplicate commits and abundant headaches. 
 
-**Result:** Jane doesn't know that John has rebased feature, and that her pull created an implicit merge. Jane's feature branch has commits A-B-D-E, while John’s rebase of feature resulted in A-B-C-D\*. This produced an error when trying to push. When Jane pulls, git tries to correct this error resulting duplicate commits and abundant headaches.
+Jane's feature branch commits :    A-B-D-E
+John’s rebase and origin commits:  A-B-C-D\*
+
+This is what the history looks like if Jane had used fetch instead of pull:
+![Step 3-2](./Pics/exp1-3.PNG)
 
 ___
-**Step 3:** Git resolves the pull the only way it can. Jane's push shares it with her collaborators. Everyone cries.
-![Step 3](./Pics/1-1-4.PNG)
+**Step 3:** As Jane pulls, Git resolves the pull the only way it can. An implicit merge commit is created. 
 
-**Final Result:** We have a confusing history with duplicate commits and unnecessary merges that may make it hard to track down bugs in the future.  
+Jane only knows that she pulled changes and updated the branch. 
+These are harmless tasks, so she pushes and shares it with her collaborators.
+
+![Step 3](./Pics/exp1-4.PNG)
+
+**Final Result:** We have a confusing history with duplicate commits, extra branch in the history, and unnecessary merges that may make it hard to track down bugs in the future.  This is a problem for everyone. 
+
+If Jane had used `$ git pull --rebase` instead of `$ git pull`, this is the history she would have created and pushed instead: 
+
+![Step 3-2](./Pics/exp1-5.PNG)
 
 ---
 
@@ -195,34 +217,35 @@ ___
 
 Using the same setup as Experiment 1, we use `$ git pull --rebase` to mitigate problems from upstream history changes in a slightly different scenario.
 
-**Step 1:** This time Jane starts off by pushing her work, commit 'E' to origin first.
+![Setup](./Pics/setup.PNG)
+
+**Step 1:** This time Jane starts off by pushing her work, commit 'E' to origin first. Then she pushes.
 
 ```
 JanesAccount ~/Git/GitExample (feature)
 $ git push origin/feature
 ```
 
-![Step 1](./Pics/2-2.PNG)
+![Step 1](./Pics/exp2-1.PNG)
 
-**Result:** A successful push to origin!
+**Result:** A successful push to origin! John/Feature still references D, as shown in setup.
 ___
 
-**Step 2:** John wants to rebase his local feature on master, but since John is on a shared branch he pulls first.
-
+**Step 2:** John wants to rebase his local feature on master. Since John is on a shared branch he does a pull first, then rebases feature onto master to update feature with master's commit C.
 ```
 JohnsAccount ~/Git/GitExample (feature)
-$ git pull --rebase
+$ git pull
 ...
 [success]
 
 JohnsAccount ~/Git/GitExample (feature)
 $ git rebase master
 ```
-![Step 2](./Pics/2-3.PNG)
+![Step 2](./Pics/exp2-2.PNG)
 
 **Result:** John has pulled Jane's work successfully and rebased to master. The history is clean and concise and no work is lost.
 
-**_Potential loss of work!!!_** If John performed a rebase and force pushes without fetching and integrating Jane’s changes, he would have lost all of Jane’s work.
+**_Potential loss of work!!!_** In this experiment, Jane pushed a commit first. If John performs a rebase and force pushes (like in experiment 1) without fetching and integrating Jane's changes, he would have overwritten & lost all of Jane’s work.
 ie: `$ git pull --rebase` or `$ git fetch & git rebase`
 
 ___
@@ -232,7 +255,7 @@ ___
 JanesAccount ~/Git/GitExample (feature)
 $ git push origin/feature
 ```
-![Step 3](./Pics/2-4.PNG)
+![Step 3](./Pics/exp2-3.PNG)
 **Result:** Another successful commit!
 
 ___
@@ -245,18 +268,26 @@ $ git push origin/feature
 error: failed to push some refs to...
 hint: Updates were rejected because the tip of your current branch is behind its remote counterpart. 
 hint: Integrate the remote changes (e.g. 'git pull...')...
+```
+It complains because John rebased master and pushed that to origin. 
 
+Jane's feature branch commits :    A-B-D-E-F
+John’s rebase and origin commits:  A-B-C-D*-E*
+
+Jane does a pull rebase, instead of a pull, to incorperate his changes with hers safely. 
+```
 JanesAccount ~/Git/GitExample (feature)
 $ git pull --rebase
 ...[success]
+```
+![Step 4](./Pics/exp2-4.PNG)
 
+Now she can safely push to origin. 
+```
 JanesAccount ~/Git/GitExample (feature)
 $ git push origin/feature
 ...[success]
 ```
-
-![Step 4](./Pics/2-6.PNG)
-
 **Result:** A beautiful history with no work lost and happy collaborators!
 ___
 
