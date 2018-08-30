@@ -40,18 +40,14 @@ There are two main philosophies on keeping a git history:
 
 Many teams prefer a history in between, so understanding how to rebase safely is important. 
 
-People tend to avoid rebase, because misuse can lose work or lose history. However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
+People tend to avoid rebase, because misuse can lose work, lose history, or create confusing history with duplicate commits. Timestamps are distorted, which can cause problems with retroactively looking for bugs. Ultimately, the history is more of a relevant picture rather than a complete one. 
+
+However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
 
 The alternative is to incorperate rebase. Some teams only ever use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, [bisect](https://linuxhint.com/git-bisect-tutorial/) for bugs, all while avoiding lots of merge commits to the entire project history.
 
-Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [git workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
+Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
 
-
-##### The disadvantages of rebasing
-
-History will not be completely accurate. Timestamps are distorted, which can cause problems with retroactively looking for bugs. 
-
-People who don't understand and misuse rebase can cause both a loss of work and confusing git histories with duplicate commits.
 
 ---
 
@@ -80,19 +76,23 @@ To convince yourself, notice how feature has a "new base" on top of "where maste
 
 Source: freecodecamp.org
 
-Suppose you are working on the feature branch and your team has finalized additions to master. Rebasing will put your changes on top of master’s new commits, so you can get new additions or bug fixes in your work without creating extra merge commits. 
+Suppose you are working on the feature branch and your team has finalized additions to master. Rebasing will put your changes on top of master’s new commits. You can get newer, finalized additions or bug fixes in your work, without creating extra merge commits. 
 
 Note master branch is unchanged here. When we rebase feature, only feature is changed.
+
+When you decide you want master to incorperate the feature branch, and you rebased feature onto master's new changes, merging with master will result in a *fast-forward merge.*
 
 ##### What actually happens during a rebase?
 
 1. The differing commits from feature are stored in the stash
-2. Copies of these commits are played on top of master. The copies represent the same changes, but have a different parent commit, and therefore have a different SHA1 tag
-3. Feature branch’s HEAD tag now refers to a copy of the most recent commit, but with a different SHA1 tag
+2. Copies of these commits are played on top of master. The copies represent the same changes, but have a different parent commit, and therefore have a different SHA1 ref
+3. Feature branch’s HEAD tag now refers to a copy of the most recent commit, but with a different SHA1 ref
+
+Note that rebasing uses space as it creates copies of every commit on your branch before running the changes on top of the new base. 
 
 ##### Where should rebase be used in a collaborative workflow?
 
-Above, we discussed what would happen if you rebased a branch within your local repository. When you decide you want master to incorperate the feature branch, and you rebased feature onto master's new changes, merging with master will result in a fast-forward merge. 
+Above, we discussed what would happen if you rebased a branch within your local repository. 
 ```
 ~/Git/GitExample (master) <-- rebasing
 $ git rebase feature  <-- onto
@@ -101,17 +101,20 @@ $ git rebase feature  <-- onto
 
 You can also rebase master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. 
 
-\*\**__However, you should never reverse the direction "upstream!"__*\*\*
+\*\**__However, you should never reverse the direction: "upstream!"__*\*\*
+
+Do not rebase origin/master onto master, or origin/feature onto feature.
 
 If you aren't careful about not rebasing shared branches or upstream, **you can cause your team to lose work.** Think carefully: if you rebase a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.  
 
+When we change the history that other collaborators have also copied into their local repos, we make it difficult for anyone’s new changes to be added properly.
+
 _Rebasing upstream is dangerous in most situations and should only be attempted by a small team of git "experts"._
+
+If you submit a **pull request**, do not rebase the branch. After a pull request, the branch is considered public. 
 
 In general, **do not rebase shared branches** but you should rebase *onto* shared branches.
 
-When we change the history that other collaborators have also copied into their local repos, we make it difficult for anyone’s new changes to be added properly.
-
-If you submit a **pull request**, do not rebase the branch. After a pull request, the branch is considered public. 
 
 ##### Conflicts
 
@@ -149,7 +152,7 @@ $ git rebase master
 ```
 
 ![Step 1](./Pics/1-1-2.PNG)
-**Result:** Johns commit 'D' has been moved to the stack and duplicated to D* which has a new sha1. This new commit has been played on top of the head of Master.
+**Result:** Johns commit 'D' has been moved to the stack and duplicated to D* which has a new SHA1. This new commit has been played on top of the head of Master.
 
 ___
 
@@ -182,7 +185,7 @@ ___
 ### Experiment (2/2):
 **Enter the magic of `git pull --rebase`**
 
-Using the same setup as Experiment 1, we use `$ git pull --rebase` to mitigate problems from upstream history changes
+Using the same setup as Experiment 1, we use `$ git pull --rebase` to mitigate problems from upstream history changes in a slightly different scenario.
 
 **Step 1:** This time Jane starts off by pushing her work, commit 'E' to origin first.
 
@@ -255,8 +258,9 @@ ___
 
 \*\***_Do not rebase between shared branches_**\*\*
 
-Editing the history of any shared branch will almost always cause problems for contributors.
-When someone else pulls for the new history, git does a discrete merge for the remote and local histories. When they push, repeated merges end up in the remote history. From then on, any other contributor that pulls and pushes will be creating more discrete merge commits in the history.
+Editing the history of any shared branch will almost always cause problems for contributors. Always put your changes on top.
+
+Consider the scenario where someone rebases a shared branch. When someone else pulls for the new history, git does a discrete merge for the remote and local histories. When they push, repeated merges end up in the remote history. From then on, any other contributor that pulls and pushes will be creating more discrete merge commits in the history.
 
 _When history has been altered on a shared branch,_ `$ git pull --rebase` _can be used in place of git pull to resolve conflicts of history and avoid extra merge commits_.
 
@@ -266,13 +270,11 @@ Attempts at pushing a new history on a shared branch will be warned by git, and 
 
 _Safest rebase cases:_
 
-- your local master _onto_ origin/master
-- your feature branch _onto_ the origin/feature branch
-- anything _onto_ your local branch.
+- your master _onto_ origin/master
+- your feature _onto_ origin/feature
+- your local branch _onto_ its parent branch
 
-\*\***_Only rebase downstream_**\*\*
 
-Rebasing uses space as it creates copies of every commit on your branch before running the changes on top of the new base. 
 
 ---
 
@@ -297,8 +299,6 @@ Quick Tip:
 You can always do a --rebase pull everytime you `$ git pull` with this configuration:
 `$ git config --global pull.rebase true`
 
-Setting the config is recommended and powerful, but then, it's important to never pull or rebase master. <---**Wait... what?? Why?!**
-
 ##### Interactive rebase
 
 Interactive rebasing (-i) provides advanced [commit history editing options](https://robots.thoughtbot.com/git-interactive-rebase-squash-amend-rewriting-history#interactive-rebase): combine, split, rewrite, add, remove, and rearrange. If needed, it is possible to use this for local cleanup, but you should never be rebasing shared commits.
@@ -307,13 +307,13 @@ Interactive rebasing (-i) provides advanced [commit history editing options](htt
 
 Force pushes should only be used when the team is trained to constantly use `$ git pull –-rebase`. If possible, force pushes should be avoided. Where a force push is required, the team should be notified to use `$ git pull -–rebase` if not regularly doing so. It is easy to lose work and history when users use `$ git push –-force` with abandon.
 
-##### Can you truly lose work?
-
-The .git/logs/refs folder has the SHA1 for every commit, including the commit made before a disaster had occurred. Git does not readily delete commits from your database, so losing work just means the commit with lost work is no longer being referenced by a tag (branch) or another commit. If you can find the SHA1, you can make a temporary branch to your work and recover it.
-
 ##### Can you truly mess up history?
 
 When force push changes history upstream, there is evidence that every repo problem can be solved by other collaborators using `$ git pull --rebase`
+
+##### Can you truly lose work?
+
+The .git/logs/refs folder has the SHA1 for every commit, including the commit made before a disaster had occurred. Git does not readily delete commits from your database, so losing work just means the commit with lost work is no longer being referenced by a tag (branch) or another commit. If you can find the SHA1, you can make a temporary branch to your work and recover it.
 
 ---
 
