@@ -25,13 +25,70 @@
 ##1. How to use this Guide
 
 ##2. Git History Components
-Before we can get into managing git history, It's important to understand what parts make up that history.
+Before we can get into managing git history, It's important to understand what parts make up that history. Lets start off by disection what is stored in your commit.
 
 **Commits:**
     - Author Data
     - Committer Data
-    - Timestamps (Author and Committer)
-    - SHA-1
+    - Parent Tree
+    - Parent Commit
+
+The Author Data contains the authors Name, email, author timestamp and time-zone.
+
+The Committer Data contains the same information but for the user who last applied the commit.
+
+Commits also store the sha-1 of their parent commit. In fact, commits can really only see backwards. This is where Git's HEAD object comes in.
+
+**HEAD:**
+One head object is created for every branch within the repository. The Head object contains a pointer to the latest commit within it's branch. This is how git tracks the latest commit.
+
+When either merging, rebasing, or squashing, HEAD is used to check how an operation should proceed. 
+
+
+Timestamps are the chronological measurements of git history. As we discuss methods to manage our history, understanding how timestamps work and are affected by our commands will help you make better decisions and become more proficient git users.
+
+
+Every commit has two separate timestamps. The GIT_AUTHOR_DATE, and the GIT_COMMITTER_DATE. 
+
+The author date is when the original commit was created on a local repository. Author date stays consistent, even after a merge or rebase. 
+
+(helpful for seeing project history linearly; as long as view is consistent) 
+Commit date is the time the commit was applied to a remote. Merging or rebasing changes this date. 
+
+Author date is the git default date when viewing history, not commit date. However, the default order in a repository’s history is the order they were applied, which is the commit date. When a commit isn’t applied(pushed) shortly after creation, a chronologic distortion may appear.
+
+--insert example here
+
+This distortion can make history difficult to understand. Don’t worry, the real history is still correct and intact, as long as anyone didn’t manually change these dates.
+
+Solutions:
+
+There are two main solutions to this problem.  Solution one is to change how you view the history. If this problem occurs multiple times, you can use git log --pretty=format=”%cd”. %cd designates the commit date. You should be able to verify that the chronological order is still intact. If not, someone has manually changed a timestamp, or used advanced features like rebase -i.
+
+--insert example here
+
+Solution two is that when pushing, all team members use the --ignore-date option. This works by setting the author date to the commit date. In this way, git preserves the chronological order of commits. This isn’t without it’s own problems though; using this command will overwrite the original author date.
+
+
+NOTE: --ignore-date option does not with with interactive rebase!! See “interactive rebasing”.
+
+Key Points:
+
+
+Two different dates
+1) Author Date: The date the author created the commit.
+2) Commit Date: The date anyone applies a commit.
+
+History date defaults to author date.
+
+Applying changes alters commit date, but not author date.
+
+Two main solutions:
+1) Manually View commit date in history
+2) Use --ignore-date when applying changes (overwrites author date with commit date)
+
+
+
 
 ## _I. Purpose_
 
@@ -121,20 +178,31 @@ Note that rebasing uses space as it creates copies of every commit on your branc
 
 ##### Where should rebase be used in a collaborative workflow?
 
-Above, we discussed what would happen if you rebased a branch within your local repository.
+Suppose you are working on the feature branch and your team has finalized additions to master. Rebasing will pull the newer finalized additions or bug fixes pushed by your team-mates into your working branch without creating any extra merge commits.
+
+When you decide you want master to incorporate the changes you have made in the feature branch, and you have already rebased your changes in feature branch onto master's current HEAD, merging with master will result in a fast-forward merge (linear).
+
+---
+
+So far, we discussed what would happen if you rebased a branch within your local repository.
 
 ```
 ~/Git/GitExample (master) <-- rebasing
 $ git rebase feature  <-- onto
 ```
 
-You can also rebase master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team.
+You can also rebase master onto origin/master or feature onto origin/feature. This is great for updating your work before publishing your changes to the rest of the team. This would be considered a pull form of rebase as you are just updating your local working copy with changes pushed to origin for your working branch.
 
 \*\*_**However, you should never reverse the direction: "upstream!"**_\*\*
 
+Upstream vs Downstream - think about where you started your branch.  If you created your branch from a commit in the master branch, then master is upstream from your feature branch, your feature branch is downstream from master.  If you then create a task branch from a commit in your feature branch - that task branch is downstream from the feature branch and the master branch. Also consider that changes pushed to origin are considered upstream from changes committed to your local working copy but not yet pushed to origin. Avoid rebasing upstream.
+
 Do not rebase master onto feature (if feature is branched from master), origin/master onto master, or origin/feature onto feature.
 
-If you aren't careful about not rebasing shared branches or upstream, **you can cause your team to lose work.** Think carefully: if you rebase a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.
+If you aren't careful about not rebasing shared branches or upstream, **you can cause your team to lose work.** 
+
+Think carefully: 
+If you rebase a shared branch onto your changes, you are inserting your commits into a history that other people need to share. You will break history for other collaborators if you push this change. When they attempt to sync their changes with origin, they will be very confused.
 
 When we change the history that other collaborators have also copied into their local repos, we make it difficult for anyone’s new changes to be added properly.
 
@@ -144,19 +212,31 @@ If you submit a **pull request**, do not rebase the branch. After a pull request
 
 In general, **do not rebase shared branches** but you should rebase _onto_ shared branches.
 
+##### Fast forwarding vs merging
+
+A merge command doesn’t always create a new merge commit. If the head of the current branch is the parent of the branch you want to merge, then git will default to fast-forwarding, with no additional merge commit. If the current head is not the parent however, git will perform a merge which supplies the extra commit.
+
+This plays into the reason we rebase. When we rebase, we declare that the parent of our target branch is in fact, the head of our current branch. This allows the fast-forwarding behavior we see in rebase. This behavior also plays into using the git pull --rebase feature.
+
+
 ##### Git Pull --Rebase
 
-A git pull works by fetching and then merging. Similarly a `$ git pull --rebase` first fetches the branch, and then does a rebase. While `$ git pull --rebase` seems the same as git fetch and git rebase,
-it is important to know that they are not the same. The pull rebase option looks in the reflogs of the remote tracking branch and can tell which commits are local, and which are from an earlier fetch. The result is a linear, readable history with all work intact and in order. _Magic_.
+A git pull works by fetching and then merging. Similarly a `$ git pull --rebase` first fetches the branch, and then does a rebase.
 
-##### Conflicts
+Note: 
+Pull --rebase is not a git fetch & git rebase. The pull --rebase option looks in the reflogs of the remote tracking branch and can tell which commits are local, and which are from an earlier fetch. The result is a linear, readable history with all work intact and in order.  _Magic_.
 
-History conflicts happen when someone else has pushed commits to origin. You need to get the new commits AND decide what to do what to do with them. Without rebase, you had `$ git pull` or `$ git fetch` + `$ git merge`. Both create implicit merge commits. Rebase provides greater control and flexibility when you want to sync a branch to origin. Here are your rebase options:
+
+##### Avoiding history conflicts
+
+History conflicts happen when someone else has pushed commits to origin. You need to get the new commits AND decide what to do what to do with them. Without rebase you have `$ git pull` === `$ git fetch` && `& git merge`. Both commands create implicit merge commits. Rebase provides greater control and flexibility when you want to sync a branch to origin. Here are your rebase options:
 
 - git pull --rebase
 - git fetch; git rebase
 
-Once your local git history matches origin, but with your changes applied on top, you can safely push to origin.
+These accomplish the same goal: telling git pull to use rebase instead of merge. 
+
+Once your local git history matches origin, but with your changes applied on top, you can safely push to origin. As your changes now begin at the head of the remote, the merge performs a fast-forward, avoiding the extra merge commit.
 
 **Merge conflicts** still can happen using rebase. Fix and continue as usual.
 
@@ -353,6 +433,8 @@ _Safest rebase cases:_
 - your feature _onto_ origin/feature
 - your local branch _onto_ its parent branch
 
+Note that these are all downstream cases, or just "getting changes."
+
 ---
 
 ## VI. Advanced Notes
@@ -394,19 +476,60 @@ The .git/logs/refs folder has the SHA1 for every commit, including the commit ma
 
 ---
 
+## _VIII. Squashing_
+
+---
+
+While `$ git pull --rebase` is a great method for integrating changes from a shared branch to your copy, squashing commits before pushing is a great method for pushing related work in your git history to share. This ensures that origin has a clean history, and although your team loses some granularity in the commit history, it speeds up debugging & testing.
+
+Squashing commits combines commits into one singular commit. 
+
+**[insert squashing procedure with pics here]**
+
+**[double check this section for clarity]**
+The “picked” commit designates which author date will be used for the timestamp. The following squashed commits get “rolled back into” and become a part of the picked commit. When squashing you can only squash backwards. Squashing “forward” into a child commit will return an error.
+Using interactive mode allows the user to further edit or customize messages 
+
+Squashing is a specific command within the interactive option within rebase. The interactive mode also has other options, and you can [read more here](https://git-scm.com/docs/git-rebase#_interactive_mode).
+
+**Proper Usage:**
+While you could squash all of your local commits before pushing, it is better to squash only related commits. In this way, all compacted commits are meaningful, contributing, and easier to navigate. 
+
+For example: if you are working on a bug on feature A, and have already committed commit a, b, c, and d. C is unrelated to this bug, so you only want to squash a, b and d together. You can do this with rebase -i without squashing or losing c. 
+
+Pick a
+Squash b
+Squash d
+Pick c
+
+This will leave you with two commits. 
+
+This does two things. First, it combines a, b and d into one commit and allows you to edit the commit message before pushing it up. Second, we have kept c and reordered the commits from A-B-C-D to (ABD-BugFix)-C.
+
+**[Summarize effort on timestamps and authoring]**
+
+([describe what happens to commit during squash; timestamps] (Original timestamps are not preserved during a squash, but can be located via the reflog((To my Knowledge))). 
+
+“If the commits had different authors, the folded commit will be attributed to the author of the first commit. The suggested commit message for the folded commit is the concatenation of the commit messages of the first commit and of those with the "squash" command”
+
+---
+
 ## _VIII. Summary/Takeaways_
 
 ---
 
 - Git works by taking commits, stashing them, assigning new sha1s, and playing them on the head of the specified branch.
-- Never rebase upstream (Unless you're 100% confident your entire team will never make a mistake...)
-- Never rebase shared branches
-- Never rebase pull requests
+- Never rebase upstream
+- Never rebase shared branches*
+- Merging branches can be fast-forwarded when current branch head is parent of target
+- Never rebase after pull requests
 - Use `$ git pull --rebase` whenever applicable
 - ALWAYS `$ git pull --rebase` before rebasing
-- Remember to use `$ git push --force-with-lease` in place of `$ git push --force`
+- Remember to use `$ git push --force-with-lease` when applicable (shared branch rebasing)
 - You can use `$ git config --global pull.rebase true` to rebase pull by default
 - Although work can be recovered, your relationship with your co-workers may be permantly damaged. Use rebase with caution.
+
+ \* Unless you're 100% confident you and your team will never make a mistake...
 
 ---
 
@@ -451,3 +574,11 @@ DeVore, Greg. “Recovering From a Disasterous Git-Rebase Mistake.” _The Scree
 Musseau, Julius. “Too Much Fun with ‘Git Pull --Rebase.’” _Doing Git Wrong_, [mergebase.com/doing-git-wrong/2018/03/07/fun-with-git-pull-rebase/](https://mergebase.com/doing-git-wrong/2018/03/07/fun-with-git-pull-rebase/).
 
 “Git Rebase and the Golden Rule Explained. – FreeCodeCamp.” _FreeCodeCamp_, 28 Feb. 2016, [medium.freecodecamp.org/git-rebase-and-the-golden-rule-explained-70715eccc372](https://medium.freecodecamp.org/git-rebase-and-the-golden-rule-explained-70715eccc372).
+
+
+`git filter-branch --env-filter \
+"if test \$GIT_COMMIT = ‘e5afad3cf2c308d5fd8861f214a378cc6fd2c8e9’
+then
+    export GIT_AUTHOR_DATE='Sat, 14 Dec 2013 12:40:00 +0000'
+    export GIT_COMMITTER_DATE='Sat, 14 Dec 2013 12:40:00 +0000'
+fi" && rm -fr "$(git rev-parse --git-dir)/refs/original/"`
