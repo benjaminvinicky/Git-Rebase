@@ -110,27 +110,45 @@ This report will answer:
 
 ---
 
-####What is Rebase?
-Git Rebase is a tool used to integrate changes while sustaining manageable, clean histories. Rebase rewrites git history by taking commits, stashing them, making new identical commits, and playing them on the head of the specified branch. This produces a much cleaner history, but comes with inherent risks if inappropriately used.
+#### What is Rebase?
 
-Although `$ git merge` is used in a similar fashion as `$ git rebase` it's important to note that they are very different. Rebase can be a very useful tool to maintain a clean history, but there are inherent risks that users need to be familiar with.
-####History
+Git Rebase is a tool used to integrate changes while sustaining manageable & clean histories.
 
-Opinions on using rebase tend to be varied and extreme due to the inherent riks
+Git merge is used similarly to git rebase, but they are very different. Although there are inherent risks, rebase manages git histories to be more useful and relevant.
+
+Git merge creates a new commit in the history for the changes merged from one branch into the target branch. If you only merge, your history will soon look like this: 
+
+**[insert pic of messy merge-only history]**
+
+The best use for merge is when you want a set of commits from an old branch to stand out in the overall history, like large refactors or major features.
+
+Git rebase appends your un-merged commits on top of the commit history of the referenced branch.
+
+Git rebase rewrites  git history by taking your commits, stashing them, updating your branch to include all the commits from the referenced branch and then replaying your stashed commits (making new commits identical to the ones that were stashed) on the head of the target branch. This produces a much cleaner history because it doesn’t add that extra commit and keeps the history linear. 
+
+
+**[insert simple pic of merge vs rebase]**
+
+#### Why rebase?
+
+Opinions on using rebase tend to be varied and extreme due to the inherent risks
 
 There are two main philosophies on keeping a git history:
 
-- **_Anti-rebasers_** want a complete record of project history, including each contributor's history. They believe git histories should show every bug fix, code redesign, false starts, and unnecessary commits.
+- _Anti-rebasers_ want a **complete** record of project history, including each contributor's history. They believe git histories should show every bug fix, code redesign, false starts, and unnecessary commits.
 
-- **_Pro-rebasers_** want a relevant record of project history. They believe history from individual contributors are irrelevant and can be distracting or counter-productive.
+- _Pro-rebasers_ want a **relevant** record of project history. They believe history from individual contributors are irrelevant and can be distracting or counter-productive.
 
 Many teams prefer a history in between, so understanding how to rebase safely is important.
 
-People tend to avoid rebase, because misuse can lose work, lose history, or create confusing history with duplicate commits. Timestamps are distorted, which can cause problems with retroactively looking for bugs. Ultimately, the history is more of a relevant picture rather than a complete one.
+People tend to avoid rebase, because misuse can 
+- lose work
+- lose history
+- create confusing history with duplicate commits
 
-However, never rebasing will create project histories that are hard to read. Never rebasing creates too many unnecessary commits and unavoidable merge commits.
+Also, timestamps become distorted, which can cause problems with retroactively looking for bugs. Ultimately, the history is more of a relevant picture rather than a complete one. (1)
 
-The alternative is to incorperate rebase. Some teams only ever use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, [bisect](https://linuxhint.com/git-bisect-tutorial/) for bugs, all while avoiding lots of merge commits to the entire project history.
+The alternative is to incorporate rebase in your integration workflow. Some teams only use rebase, while other teams choose to rebase for a subset of scenarios. When rebase is used appropriately, developers can still commit often, [bisect](https://linuxhint.com/git-bisect-tutorial/) for bugs, all while avoiding lots of merge commits to the entire project history.
 
 Rebasing is more than a tool for “_cleaning a commit history._” It is powerful when properly incorporated into a team’s regular [workflow](https://www.atlassian.com/git/tutorials/comparing-workflows).
 
@@ -142,11 +160,11 @@ Rebasing is more than a tool for “_cleaning a commit history._” It is powerf
 
 In this section we will take a look at git rebase, what it does to project history, and when it can be used.
 
-##### Rebase vs Merge
+##### What really happens
 
 For now, consider the simple case of syncing changes between master and a feature branch.
 
-Terminology: (1) the branch _being rebased_, and (2) the branch we are _rebasing onto_.
+In this example we want to update our current working branch (feature branch) with changes added to the referenced branch (master). 
 
 ```
 (In your console)
@@ -167,6 +185,15 @@ Suppose you are working on the feature branch and your team has finalized additi
 Note master branch is unchanged here. When we rebase feature, only feature is changed.
 
 When you decide you want master to incorperate the feature branch, and you rebased feature onto master's new changes, merging with master will result in a _fast-forward merge._
+
+ The terminology is that we "rebase feature onto master".
+
+This does not mean to modify the master branch. This means to 'peel' your changes off your branch and 'stash' them for later re-use, then update the "base" of your branch to the "head" of the master branch, then 'replay' your changes ontop of the new head of your branch. 
+
+After a rebase the "base" of your feature branch will be identical to the "head" of the master branch - as if you originally pulled your branch from that "head" commit.  Essentially you have given your branch a new 'base' – you have 're-based' your branch to the head of the master branch. 
+
+Once this succeeds you can then merge your branch back to master and have a clean - linear - history.
+
 
 ##### What actually happens during a rebase?
 
