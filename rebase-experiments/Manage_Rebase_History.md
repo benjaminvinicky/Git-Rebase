@@ -5,8 +5,9 @@
 #Table of Contents
 
 1. How to Use this Guide
-2. Git History Components
-3. Rebase
+2. Basic Git Components
+4. Timestamps
+5. Rebase
   i. Purpose
   ii. Introduction
   iii. History
@@ -17,100 +18,95 @@
   viii. Summary/Takeaways
   ix. Rebase Commands
   x.References 
-4. Summary
-5. Glossary <---Or something
+6. Summary
+7. Glossary <---Or something
 
 ---
-
 ##1. How to use this Guide
 
-##2. Git History Components
-Before we can get into managing git history, It's important to understand what parts make up that history. Lets start off by disection what is stored in your commit.
+
+
+##2. Components
+Before we can get into managing git history, lets talk about the two important components at play; The head and commits. Commits contain timestamps and pointers to it's parent commit. Head tracks the latest commit in a branch. Both components play important roles in refining git history.
+
+**Head:**
+    - Tracks the latest commit in every branch. (Plays important roles in rebase/merging)
+
+As we will learn, Git actively decides how to deal with merge and rebase depending on the location of the the respective heads. Heads are just pointers themselves, and contain no real data other than the SHA-1 of the latest commit.
 
 **Commits:**
-    - Author Data
+    - Author Data 
     - Committer Data
-    - Parent Tree
-    - Parent Commit
+    - Last commit's SHA-1
+    - Timestamps (Author and Committer)
 
-The Author Data contains the authors Name, email, author timestamp and time-zone.
+Commits are the bread-and-butter of our history. They not only contain the SHA-1 to their parent commits, but the timestamps data of both committer and Author. Try to view git history as a heirarchal ancestry of commits, reinforced with timestamps and user data.
 
-The Committer Data contains the same information but for the user who last applied the commit.
 
-Commits also store the sha-1 of their parent commit. In fact, commits can really only see backwards. This is where Git's HEAD object comes in.
+___
 
-**HEAD:**
-One head object is created for every branch within the repository. The Head object contains a pointer to the latest commit within it's branch. This is how git tracks the latest commit.
-
-When either merging, rebasing, or squashing, HEAD is used to check how an operation should proceed. 
-
+##3. Timestamps
 
 Timestamps are the chronological measurements of git history. As we discuss methods to manage our history, understanding how timestamps work and are affected by our commands will help you make better decisions and become more proficient git users.
 
+Every commit has two separate timestamps. The *GIT_AUTHOR_DATE*, and the *GIT_COMMITTER_DATE*. 
 
-Every commit has two separate timestamps. The GIT_AUTHOR_DATE, and the GIT_COMMITTER_DATE. 
+**Author Date:** is when the original commit was created on a local repository. The author date stays consistent, even after a merge or rebase. 
+ 
+**Commit Date:** is the time the commit was applied to a remote. Merging or rebasing changes this date, along with the data of person who applied the changes.
 
-The author date is when the original commit was created on a local repository. Author date stays consistent, even after a merge or rebase. 
-
-(helpful for seeing project history linearly; as long as view is consistent) 
-Commit date is the time the commit was applied to a remote. Merging or rebasing changes this date. 
-
-Author date is the git default date when viewing history, not commit date. However, the default order in a repository’s history is the order they were applied, which is the commit date. When a commit isn’t applied(pushed) shortly after creation, a chronologic distortion may appear.
+Author date is the default date when viewing histor. When a commit isn’t applied(pushed) shortly after creation, a chronologic distortion may appear as the commit wasn't applied on the same day it was created.
 
 --insert example here
 
-This distortion can make history difficult to understand. Don’t worry, the real history is still correct and intact, as long as anyone didn’t manually change these dates.
+This distortion can make history difficult to understand, however, the real history is still correct and intact within the commit date.
 
-Solutions:
+*Note:* 
+1. Timestamps can be manually overwritten, which is a widely discouraged practice, as this does remove accurate history.
+2. Some commands allow users to copy one date over another. This means the loss of the overwritten timestamp. 
 
-There are two main solutions to this problem.  Solution one is to change how you view the history. If this problem occurs multiple times, you can use git log --pretty=format=”%cd”. %cd designates the commit date. You should be able to verify that the chronological order is still intact. If not, someone has manually changed a timestamp, or used advanced features like rebase -i.
+**Solutions:**
+
+There are two main solutions to this problem.  Solution one is to change how you view the history. If this problem occurs multiple times, you can use `$ git log --pretty=format=”%cd”`. %cd designates the commit date. You should be able to verify that the chronological order is still intact. If not, someone has manually changed a timestamp, or used advanced features like rebase -i.  ***<--Can commit date be manually changed here?***
 
 --insert example here
 
-Solution two is that when pushing, all team members use the --ignore-date option. This works by setting the author date to the commit date. In this way, git preserves the chronological order of commits. This isn’t without it’s own problems though; using this command will overwrite the original author date.
+Solution two is that when pushing, all team members use the --ignore-date option. This works by setting the author date to the commit date, preserving the chronological order of commits.
 
+*NOTE:* --ignore-date option does not work with interactive rebase!! See “interactive rebasing”.
 
-NOTE: --ignore-date option does not with with interactive rebase!! See “interactive rebasing”.
+**Key Points:**
 
-Key Points:
-
-
-Two different dates
+*Two different dates:*
 1) Author Date: The date the author created the commit.
 2) Commit Date: The date anyone applies a commit.
 
-History date defaults to author date.
+-*History date defaults to author date.*
+-*Applying changes alters commit date, but not author date.*
 
-Applying changes alters commit date, but not author date.
-
-Two main solutions:
+*Two main solutions:*
 1) Manually View commit date in history
 2) Use --ignore-date when applying changes (overwrites author date with commit date)
 
+___
 
+##4. Rebase
 
+####I. Purpose:
 
-## _I. Purpose_
-
----
-
-This document is for anyone interested in using git rebase to improving productivity or project history clarity.
+This section is for anyone interested in using git rebase to improve productivity or project history clarity.
 
 This report will answer:
+why rebase is useful?
+what rebase does?
+when rebase can be used?
+where rebase problems can occur?
+how to fix or mitigate rebase problems?
 
-- why rebase is useful
-- what git rebase does
-- when rebase can be used
-- where rebase problems can occur
-- how to fix or mitigate rebase problems
-
----
-
-## _II. Introduction_
 
 ---
 
-#### What is Rebase?
+#### II. What is Rebase?
 
 Git Rebase is a tool used to integrate changes while sustaining manageable & clean histories.
 
